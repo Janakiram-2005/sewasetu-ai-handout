@@ -1,0 +1,64 @@
+# Render Blueprint for Sewa Setu — Old Age Pension Portal
+# Deploys:
+# 1. sewasetu-web: Flask + Gunicorn web portal & OAuth 2.1 / MCP server
+# 2. sewasetu-scheduler: Single-instance background worker running 15-day statutory deemed approval
+# 3. sewasetu-db: Managed Render PostgreSQL database
+
+databases:
+  - name: sewasetu-db
+    databaseName: sewasetu
+    user: sewasetu
+    plan: free
+
+services:
+  - type: web
+    name: sewasetu-web
+    runtime: docker
+    dockerfilePath: ./app/Dockerfile
+    dockerContext: ./app
+    dockerCommand: sh -c "exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-4} --timeout 30 app:app"
+    healthCheckPath: /about
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: REQUIRE_POSTGRES
+        value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sewasetu-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: DEMO_OTP_DISPLAY
+        value: "1"
+      - key: SMS_GATEWAY_URL
+        value: disabled
+      - key: WEB_CONCURRENCY
+        value: "2"
+
+  - type: worker
+    name: sewasetu-scheduler
+    runtime: docker
+    numInstances: 1
+    dockerfilePath: ./app/Dockerfile
+    dockerContext: ./app
+    dockerCommand: python /app/scripts/deemed_approval.py --daemon
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: REQUIRE_POSTGRES
+        value: "1"
+      - key: SCHEDULER_DAEMON
+        value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sewasetu-db
+          property: connectionString
+      - key: SMS_GATEWAY_URL
+        value: disabled

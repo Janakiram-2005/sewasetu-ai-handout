@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="steps"><b>Step 3 of 6:</b> Address Details</div>
+<h2>Address Details</h2>
+{% set cur_block = data.get('block', '') %}
+{% set cur_village = data.get('village', '') %}
+{% set mapped_villages = block_villages.get(cur_block, []) if block_villages is defined else [] %}
+{% set is_other = cur_village and (cur_village not in mapped_villages) %}
+<form method="post" id="address-form">
+  <input type="hidden" name="location_dropdown_mode" value="1">
+  <label for="block-select">Block</label>
+  <select name="block" id="block-select">
+    <option value="">--Select--</option>
+    {% for b in blocks %}
+    <option value="{{ b }}" {% if cur_block==b %}selected{% endif %}>{{ b }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="village-select">Village / Town</label>
+  <select name="village" id="village-select">
+    {% if not cur_block %}
+    <option value="">--Select a Block first--</option>
+    {% else %}
+    <option value="">--Select Village / Town--</option>
+    {% for v in mapped_villages %}
+    <option value="{{ v }}" {% if cur_village==v %}selected{% endif %}>{{ v }}</option>
+    {% endfor %}
+    <option value="__OTHER__" {% if is_other %}selected{% endif %}>Other (enter manually — not listed in project seed data)</option>
+    {% endif %}
+  </select>
+
+  <div id="village-other-wrap" style="margin-top:10px; {% if not is_other %}display:none;{% endif %}">
+    <label for="village-other">Manual Village / Town Entry <span class="note">(fallback for unlisted locality)</span></label>
+    <input type="text" name="village_other" id="village-other" maxlength="100"
+           placeholder="Enter your village or town name"
+           value="{{ cur_village if is_other else '' }}">
+  </div>
+
+  <p class="note" style="margin-top:10px;">
+    Select your development block to load its mapped villages/towns from the scheme directory. If your village is not in the project seed list, select <b>Other (enter manually)</b>.
+  </p>
+  <p><button class="btn" type="submit">Save &amp; Continue</button></p>
+</form>
+<script>
+(function() {
+  var BLOCK_VILLAGES = {{ (block_villages if block_villages is defined else {}) | tojson }};
+  var blockSel = document.getElementById("block-select");
+  var villageSel = document.getElementById("village-select");
+  var otherWrap = document.getElementById("village-other-wrap");
+  var otherInput = document.getElementById("village-other");
+
+  function syncOtherVisibility() {
+    if (villageSel.value === "__OTHER__") {
+      otherWrap.style.display = "block";
+    } else {
+      otherWrap.style.display = "none";
+      otherInput.value = "";
+    }
+  }
+
+  blockSel.addEventListener("change", function() {
+    var b = blockSel.value;
+    villageSel.innerHTML = "";
+    if (!b || !BLOCK_VILLAGES[b]) {
+      var emptyOpt = document.createElement("option");
+      emptyOpt.value = "";
+      emptyOpt.textContent = "--Select a Block first--";
+      villageSel.appendChild(emptyOpt);
+      syncOtherVisibility();
+      return;
+    }
+    var promptOpt = document.createElement("option");
+    promptOpt.value = "";
+    promptOpt.textContent = "--Select Village / Town--";
+    villageSel.appendChild(promptOpt);
+
+    var villages = BLOCK_VILLAGES[b] || [];
+    for (var i = 0; i < villages.length; i++) {
+      var opt = document.createElement("option");
+      opt.value = villages[i];
+      opt.textContent = villages[i];
+      villageSel.appendChild(opt);
+    }
+
+    var otherOpt = document.createElement("option");
+    otherOpt.value = "__OTHER__";
+    otherOpt.textContent = "Other (enter manually — not listed in project seed data)";
+    villageSel.appendChild(otherOpt);
+    syncOtherVisibility();
+  });
+
+  villageSel.addEventListener("change", syncOtherVisibility);
+})();
+</script>
+{% endblock %}
+

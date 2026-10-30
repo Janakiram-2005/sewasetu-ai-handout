@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Track Application Status</h2>
+<p>Enter your 10-digit registered mobile number to receive a one-time password (OTP).</p>
+<form method="post">
+  <label>Registered Mobile Number</label>
+  <input type="text" name="mobile" maxlength="10" placeholder="10-digit mobile number" required>
+  <p><button class="btn" type="submit">Send OTP</button></p>
+</form>
+{% endblock %}

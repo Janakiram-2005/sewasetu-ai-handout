@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .eval-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0b3d6e; padding-bottom: 12px; margin-bottom: 20px; }
+  .scorecard { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+  .score-box { flex: 1; min-width: 130px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; text-align: center; }
+  .score-val { font-size: 28px; font-weight: bold; margin-top: 4px; }
+  .val-pass { color: #166534; }
+  .val-rate { color: #0b3d6e; }
+  .val-fail { color: #991b1b; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+  .badge-pass { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .badge-fail { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  .badge-cat { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 11px; }
+  .scenario-card { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+  .scenario-head { background: #f1f5f9; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; }
+  .scenario-body { padding: 18px; }
+  .persona-box { background: #fbfcfe; border-left: 4px solid #0b3d6e; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+  .code-block { background: #0f172a; color: #f8fafc; padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto; font-family: monospace; max-height: 240px; margin: 8px 0 14px; }
+  .db-box { background: #fdfdfd; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 4px; margin-top: 10px; font-size: 13px; }
+  .client-guide { background: #f8fafc; border: 1px solid #94a3b8; border-radius: 6px; padding: 18px; margin-top: 36px; }
+</style>
+
+<div class="eval-header">
+  <div>
+    <h2 style="margin:0; color:#0b3d6e;">AI Agent Evaluation & Verification Dashboard</h2>
+    <div class="note">Streamable HTTP MCP Servers &middot; Database Verifications &middot; Director's Note Evals</div>
+  </div>
+  <form method="POST" action="/eval-dashboard/run" style="margin:0;">
+    <button type="submit" class="btn" style="background:#166534; cursor:pointer;">▶ Run All Evaluations</button>
+  </form>
+</div>
+
+<div class="scorecard">
+  <div class="score-box">
+    <div style="font-size:12px; color:#64748b; text-transform:uppercase;">Total Scenarios</div>
+    <div class="score-val">{{ summary.total }}</div>
+  </div>
+  <div class="score-box">
+    <div style="font-size:12px; color:#64748b; text-transform:uppercase;">Passed</div>
+    <div class="score-val val-pass">{{ summary.passed }}</div>
+  </div>
+  <div class="score-box">
+    <div style="font-size:12px; color:#64748b; text-transform:uppercase;">Failed</div>
+    <div class="score-val val-fail">{{ summary.failed }}</div>
+  </div>
+  <div class="score-box">
+    <div style="font-size:12px; color:#64748b; text-transform:uppercase;">Pass Rate</div>
+    <div class="score-val val-rate">{{ summary.pass_rate }}%</div>
+    <div style="font-size:11px; color:#64748b; margin-top:2px;">{{ summary.passed }} of {{ summary.total }} passed ({{ summary.pass_rate }}%)</div>
+  </div>
+</div>
+
+<p class="note" style="margin-bottom:20px;">
+  <b>Last evaluation executed:</b> {{ summary.timestamp }} &middot; All checks executed against the live system of record.
+</p>
+
+<h3 style="color:#0b3d6e; border-bottom:1px solid #ccc; padding-bottom:6px; margin-bottom:18px;">
+  Evaluated Scenarios ({{ summary.scenarios|length }})
+</h3>
+
+{% for s in summary.scenarios %}
+<div class="scenario-card">
+  <div class="scenario-head">
+    <div>
+      <span class="badge badge-cat">{{ s.category }}</span>
+      <b style="font-size:15px; margin-left:8px; color:#1e293b;">{{ s.title }}</b>
+    </div>
+    <div>
+      {% if s.passed %}
+        <span class="badge badge-pass">✓ PASS</span>
+      {% else %}
+        <span class="badge badge-fail">✗ FAIL</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="scenario-body">
+    <div class="persona-box">
+      <b>Persona:</b> {{ s.persona.name }} (Age {{ s.persona.age }}, {{ s.persona.village }}, {{ s.persona.block }})<br>
+      <i>"{{ s.persona.voice }}"</i><br>
+      <span class="note">{{ s.persona.story }}</span>
+    </div>
+
+    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:320px;">
+        <label style="margin-top:0;">MCP Protocol Request:</label>
+        <pre class="code-block">{{ s.mcp_request | tojson(indent=2) }}</pre>
+      </div>
+      <div style="flex:1; min-width:320px;">
+        <label style="margin-top:0;">MCP Server Response:</label>
+        <pre class="code-block">{{ s.mcp_response | tojson(indent=2) }}</pre>
+      </div>
+    </div>
+
+    <div class="db-box">
+      <b>Database Verification Query:</b><br>
+      <code>{{ s.db_assertion.sql }}</code><br>
+      <div style="margin-top:6px; font-size:12px;">
+        <span style="color:#047857;"><b>Expected:</b> {{ s.db_assertion.expected }}</span><br>
+        <span style="color:#0f172a;"><b>Actual DB State:</b> {{ s.db_assertion.actual }}</span>
+      </div>
+    </div>
+
+    <p style="margin:10px 0 0 0; font-size:13px; color:#334155;">
+      <b>Outcome Explanation:</b> {{ s.explanation }}
+    </p>
+  </div>
+</div>
+{% endfor %}
+
+<div class="client-guide">
+  <h3 style="margin-top:0; color:#0b3d6e;">External MCP Client Connectivity & Setup Guide</h3>
+  <p class="note">
+    Configure Claude Code, Cursor, or any Streamable HTTP MCP client to connect to Sewa Setu.
+  </p>
+
+  <h4 style="margin-bottom:6px;">1. Endpoints</h4>
+  <table class="tbl" style="background:#fff; margin-bottom:14px;">
+    <tr><th>Audience</th><th>Endpoint URL</th><th>Required Scope</th><th>Transport</th></tr>
+    <tr>
+      <td><b>Citizen Assistant</b></td>
+      <td><code>{{ issuer }}/mcp/citizen</code></td>
+      <td><code>citizen</code></td>
+      <td>Streamable HTTP POST & SSE</td>
+    </tr>
+    <tr>
+      <td><b>Block Officer Assistant</b></td>
+      <td><code>{{ issuer }}/mcp/officer</code></td>
+      <td><code>officer</code></td>
+      <td>Streamable HTTP POST & SSE</td>
+    </tr>
+  </table>
+
+  <h4 style="margin-bottom:6px;">2. Authentication Flows</h4>
+  <ul>
+    <li><b>OAuth 2.1 Interactive Sign-in:</b> Clients register at <code>/oauth/register</code> and initiate PKCE authorization at <code>/oauth/authorize?scope=citizen</code> (verified with OTP) or <code>scope=officer</code> (verified with departmental password).</li>
+    <li><b>Unattended Program Tokens:</b> Officers generate long-lived RS256 Bearer JWTs at <a href="/admin/tokens">/admin/tokens</a>.</li>
+    <li><b>Bearer Token Header:</b> Attach token to MCP requests via <code>Authorization: Bearer &lt;access_token&gt;</code>.</li>
+  </ul>
+
+  <h4 style="margin-bottom:6px;">3. Claude Code / MCP Client Configuration Example</h4>
+  <pre class="code-block">{
+  "mcpServers": {
+    "sewasetu-citizen": {
+      "url": "{{ issuer }}/mcp/citizen",
+      "headers": {
+        "Authorization": "Bearer &lt;CITIZEN_TOKEN&gt;"
+      }
+    },
+    "sewasetu-officer": {
+      "url": "{{ issuer }}/mcp/officer",
+      "headers": {
+        "Authorization": "Bearer &lt;OFFICER_TOKEN&gt;"
+      }
+    }
+  }
+}</pre>
+</div>
+
+{% endblock %}

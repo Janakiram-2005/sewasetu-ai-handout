@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Verify OTP for Status Tracking</h2>
+<p>An OTP has been sent by SMS to registered mobile <b>{{ mobile }}</b>.</p>
+{% if sim_otp %}
+<p class="note"><strong>Student Demo OTP (current session only):</strong> Your OTP is <b>{{ sim_otp }}</b></p>
+{% endif %}
+<form method="post">
+  <input type="hidden" name="mobile" value="{{ mobile }}">
+  <label>Enter 6-digit OTP</label>
+  <input type="text" name="otp" maxlength="6" autofocus required>
+  <p><button class="btn" type="submit">Verify & View Status</button></p>
+</form>
+<p><a href="/status">Change mobile number / Resend OTP</a></p>
+{% endblock %}

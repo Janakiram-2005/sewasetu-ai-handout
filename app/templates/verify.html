@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="steps"><b>Step 1 of 6:</b> Mobile Verification</div>
+<h2>Enter OTP</h2>
+<p class="note">An OTP has been sent to {{ mobile }}.</p>
+{% if sim_otp %}
+<div style="background:#e7f3fe;border-left:4px solid #0b3d6e;padding:12px 16px;margin:16px 0;font-size:14px">
+  <strong>Student Demo OTP (current session only):</strong> Your verification OTP is <strong style="font-size:17px;letter-spacing:2px;color:#0b3d6e">{{ sim_otp }}</strong> (Valid for 5 minutes).
+</div>
+{% endif %}
+<form method="post">
+  <input type="hidden" name="mobile" value="{{ mobile }}">
+  <label>OTP</label>
+  <input type="text" name="otp" maxlength="6" style="max-width:160px" autocomplete="one-time-code" autofocus>
+  <p><button class="btn" type="submit">Verify</button></p>
+</form>
+{% endblock %}

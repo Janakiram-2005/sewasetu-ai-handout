@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Application Status</h2>
+<table class="tbl" style="max-width:640px">
+  <tr><th>Application No</th><td>{{ a[0] }}</td></tr>
+  <tr><th>Applicant Name</th><td>{{ a[1] }}</td></tr>
+  <tr><th>Mobile</th><td>{{ a[2] }}</td></tr>
+  <tr><th>Date of Birth</th><td>{{ a[3] }}</td></tr>
+  <tr><th>Village</th><td>{{ a[4] }}</td></tr>
+  <tr><th>Block</th><td>{{ a[5] }}</td></tr>
+  <tr><th>Bank Account</th><td>{% if a[6] and a[6]|length > 4 %}••••••••{{ a[6][-4:] }}{% else %}{{ a[6] }}{% endif %}</td></tr>
+  <tr><th>IFSC</th><td>{{ a[7] }}</td></tr>
+  <tr><th>Status</th><td><b>{{ a[8] }}</b></td></tr>
+  <tr><th>Submitted</th><td>{{ a[9] }}</td></tr>
+  <tr><th>Decided</th><td>{{ a[10] or '-' }}</td></tr>
+</table>
+<p><a href="/ack/{{ app_id }}.pdf" download="SewaSetu_Ack_{{ app_id }}.pdf" onclick="return downloadAckPdf(event, this);" class="btn" style="display:inline-block; text-decoration:none;">Download Acknowledgment (PDF)</a> &middot;
+<a href="/status/connections">Connected applications</a> &middot;
+<a href="/">Back to Home</a></p>
+{% if a[8] == 'PENDING' %}
+<h3>Made a mistake?</h3>
+<p class="note">A pending application can be withdrawn. After withdrawing, you may
+submit a fresh application with the same mobile number.</p>
+<form method="post" action="/application/{{ app_id }}/withdraw"
+      onsubmit="return confirm('Withdraw application {{ a[0] }}? This cannot be undone.');">
+  <button class="btn" style="background:#a33" type="submit">Withdraw this application</button>
+</form>
+{% elif a[8] in ('WITHDRAWN', 'REJECTED') %}
+<p class="note">This application is {{ a[8].lower() }}. You may
+<a href="/apply">submit a new application</a>.</p>
+{% endif %}
+<script>
+function downloadAckPdf(e, link) {
+  if (!window.fetch) return true;
+  e.preventDefault();
+  var origText = link.textContent;
+  link.textContent = "Downloading...";
+  fetch(link.href, { credentials: "same-origin" })
+    .then(function(res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.blob();
+    })
+    .then(function(blob) {
+      if (blob.type === "text/html") {
+        window.location.href = link.href;
+        return;
+      }
+      var url = window.URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = "SewaSetu_Ack_{{ app_id }}.pdf";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+      link.textContent = origText;
+    })
+    .catch(function(err) {
+      link.textContent = origText;
+      window.location.href = link.href;
+    });
+  return false;
+}
+</script>
+{% endblock %}

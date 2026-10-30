@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Application Submitted</h2>
+<p>Your application has been received and is pending departmental verification.</p>
+<table class="tbl" style="max-width:480px">
+  <tr><th>Application Number</th><td><b>{{ app_no }}</b></td></tr>
+</table>
+<p class="note">Please note down your Application Number. You can check your
+application status on the <a href="/status">status portal</a> using your registered
+mobile number and an OTP.</p>
+<p><a href="/ack/{{ app_id }}.pdf" download="SewaSetu_Ack_{{ app_id }}.pdf" onclick="return downloadAckPdf(event, this);" class="btn" style="display:inline-block; text-decoration:none;">Download Acknowledgment (PDF)</a>
+&nbsp;&nbsp;<a href="/" class="btn" style="display:inline-block; text-decoration:none; background:#555;">Back to Home</a></p>
+<script>
+function downloadAckPdf(e, link) {
+  if (!window.fetch) return true;
+  e.preventDefault();
+  var origText = link.textContent;
+  link.textContent = "Downloading...";
+  fetch(link.href, { credentials: "same-origin" })
+    .then(function(res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.blob();
+    })
+    .then(function(blob) {
+      if (blob.type === "text/html") {
+        window.location.href = link.href;
+        return;
+      }
+      var url = window.URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = "SewaSetu_Ack_{{ app_id }}.pdf";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+      link.textContent = origText;
+    })
+    .catch(function(err) {
+      link.textContent = origText;
+      window.location.href = link.href;
+    });
+  return false;
+}
+</script>
+{% endblock %}
